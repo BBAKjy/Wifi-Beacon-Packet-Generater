@@ -15,6 +15,7 @@
 #include <sys/ioctl.h>
 #include <time.h>
 
+#pragma pack(push, 1)
 typedef struct Radiotap{
 	unsigned char Header_revision;
 	unsigned char Header_pad;
@@ -36,7 +37,6 @@ typedef struct Beacon{
 	unsigned char Transmitter_address[6];
 	unsigned char BSS_Id[6];
 	unsigned short seq_number;
-	//unsigned int Frame_check_seq;
 
 }Beacon_Frame;
 
@@ -151,6 +151,67 @@ typedef struct wireless_LAN{
 	unsigned char V_Specific_Data[5];
 }wireless_Header;
 
+typedef struct Association_wireless_LAN{
+
+//----------------FIXED PARAMETERS---------------------------//
+	unsigned short Capabilities_Information;
+	unsigned short Status_Code;
+	unsigned short Association_ID;
+
+//------------------TAGGED PARAMETERS-------------------------//
+//-------------------SUPPORTED RATES----------------------------//
+	unsigned char Supported_Tag_Number;
+	unsigned char Supported_Tag_length;
+	unsigned char Supported_Rates[4];
+
+//--------------------EXTENDED SUPPORTED RATES-----------------------//
+	unsigned char Extended_Supported_Tag_Number;
+	unsigned char Extended_Supported_Tag_length;
+	unsigned char Extended_Supported_Rates[8];
+
+//----------------------------VENDOR SPECIFIC----------------------//
+	unsigned char Vendor_Tag_Number;
+	unsigned char Vendor_Tag_length;
+	unsigned char Vendor_OUI[3];
+	unsigned char Vendor_OUI_Type;
+	unsigned char WME_Subtype;
+	unsigned char WME_Version;
+	unsigned char QoS_Info;
+	unsigned char Reserved;
+	unsigned char Ac_Parameters[16];
+
+//-----------------HT CAPABILITIES------------------------------//
+	unsigned char HT_Capabilities_Tag_Number;
+	unsigned char HT_Capabilities_Tag_length;
+	unsigned char HT_Capabilities_Info[2];
+	unsigned char A_MPDU_Parameters;
+	unsigned char Rx_Supported_Mod[16];
+	unsigned short HT_Extended_Capabilities;
+	unsigned char Transmit_Beam_Forming[4];
+	unsigned char Antenna_Selection;
+
+//-----------------HT INFORMATION-------------------------------//
+	unsigned char HT_INFO_Tag_Number;
+	unsigned char HT_INFO_Tag_length;
+	unsigned char Primary_Channel;
+	unsigned char HT_INFO_Subset[5];
+	unsigned char INFO_Supported_Modset[16];
+
+//-----------------VENDOR SPECIFIC--------------------//
+	unsigned char V_Tag_Number;
+	unsigned char V_Tag_length;
+	unsigned char V_OUI[3];
+	unsigned char V_Specific_Data[5];
+
+//-----------------EXTENDED CAPACITIES-----------------//
+	unsigned char EC_Tag_Number;
+	unsigned char EC_Tag_length;
+	unsigned char EC[8];
+
+	
+}Association_Wireless;
+#pragma pack(pop)
+
 void Set_Radiotap(Radiotap_Header * rthdr){
 	rthdr->Header_revision = 0;
 	rthdr->Header_pad = 0;
@@ -176,12 +237,11 @@ void Set_Beacon(Beacon_Frame * bfhdr){
 	bfhdr->Transmitter_address[2] = 0x52;
 	bfhdr->Transmitter_address[3] = 0x6a;
 	bfhdr->Transmitter_address[4] = 0x1f;
-	bfhdr->Transmitter_address[5] = 0xa8;
+	bfhdr->Transmitter_address[5] = 0xbb;
 
 	memcpy(bfhdr->BSS_Id, bfhdr->Transmitter_address, sizeof(bfhdr->Transmitter_address));
 
 	bfhdr->seq_number = htons(0x507a);
-	//bfhdr->Frame_check_seq = 0x7dd03033;
 }
 
 void Set_wireless_LAN(wireless_Header * wlhdr, int SSID_len, unsigned char Src_SSID[]){
@@ -289,7 +349,7 @@ void Set_wireless_LAN(wireless_Header * wlhdr, int SSID_len, unsigned char Src_S
 	wlhdr->Rx_Supported_Mod[0] = 0xff;
 	wlhdr->Rx_Supported_Mod[1] = 0xff;
 
-	for(int i=2;i<16;i++)
+	for(int i=2;i<15;i++)
 		wlhdr->Rx_Supported_Mod[i] = 0;
 	
 	wlhdr->HT_Extended_Capabilities = 0x0400;
@@ -337,6 +397,134 @@ void Set_wireless_LAN(wireless_Header * wlhdr, int SSID_len, unsigned char Src_S
 	wlhdr->V_Specific_Data[4] = 0x00;
 }
 
+void Set_Association_Response(Beacon_Frame * bfhdr){
+	bfhdr->Frame_Control_Field = htons(0x1000);
+	bfhdr->Duration = htons(0xa200);
+
+	bfhdr->Receiver_address[0] = 0x34;
+	bfhdr->Receiver_address[1] = 0xa8;
+	bfhdr->Receiver_address[2] = 0xeb;
+	bfhdr->Receiver_address[3] = 0xec;
+	bfhdr->Receiver_address[4] = 0xe2;
+	bfhdr->Receiver_address[5] = 0x64;
+
+	bfhdr->Transmitter_address[0] = 0xf0;
+	bfhdr->Transmitter_address[1] = 0xb0;
+	bfhdr->Transmitter_address[2] = 0x52;
+	bfhdr->Transmitter_address[3] = 0x6a;
+	bfhdr->Transmitter_address[4] = 0x1f;
+	bfhdr->Transmitter_address[5] = 0xbb;
+
+	memcpy(bfhdr->BSS_Id, bfhdr->Transmitter_address, sizeof(bfhdr->Transmitter_address));
+
+	bfhdr->seq_number = htons(0x2000);
+}
+
+void Set_Association_wireless_LAN(Association_Wireless * aw){
+
+	aw->Capabilities_Information = 0x0421;
+	aw->Status_Code = 0;
+	aw->Association_ID = htons(0x01c0);
+
+	aw->Supported_Tag_Number = 1;
+	aw->Supported_Tag_length = 4;
+	aw->Supported_Rates[0] = 0x82;
+	aw->Supported_Rates[1] = 0x84;
+	aw->Supported_Rates[2] = 0x8b;
+	aw->Supported_Rates[3] = 0x0c;
+
+	aw->Extended_Supported_Tag_Number = 0x32;
+	aw->Extended_Supported_Tag_length = 8;
+	aw->Extended_Supported_Rates[0] = 0x12;
+	aw->Extended_Supported_Rates[1] = 0x96;
+	aw->Extended_Supported_Rates[2] = 0x18;
+	aw->Extended_Supported_Rates[3] = 0x24;
+	aw->Extended_Supported_Rates[4] = 0x30;
+	aw->Extended_Supported_Rates[5] = 0x48;
+	aw->Extended_Supported_Rates[6] = 0x60;
+	aw->Extended_Supported_Rates[7] = 0x6c;
+
+	aw->Vendor_Tag_Number = 0xdd;
+	aw->Vendor_Tag_length = 24;
+	aw->Vendor_OUI[0] = 0x00;
+	aw->Vendor_OUI[1] = 0x50;
+	aw->Vendor_OUI[2] = 0xf2;
+	aw->Vendor_OUI_Type = 2;
+	aw->WME_Subtype = 1;
+	aw->WME_Version = 1;
+	aw->QoS_Info = 0x86;
+	aw->Reserved = 0;
+	aw->Ac_Parameters[0] = 0x03;
+	aw->Ac_Parameters[1] = 0xa4;
+	aw->Ac_Parameters[2] = 0x00;
+	aw->Ac_Parameters[3] = 0x00;
+	aw->Ac_Parameters[4] = 0x27;
+	aw->Ac_Parameters[5] = 0xa4;
+	aw->Ac_Parameters[6] = 0x00;
+	aw->Ac_Parameters[7] = 0x00;
+	aw->Ac_Parameters[8] = 0x42;
+	aw->Ac_Parameters[9] = 0x43;
+	aw->Ac_Parameters[10] = 0x5e;
+	aw->Ac_Parameters[11] = 0x00;
+	aw->Ac_Parameters[12] = 0x62;
+	aw->Ac_Parameters[13] = 0x32;
+	aw->Ac_Parameters[14] = 0x2f;
+	aw->Ac_Parameters[15] = 0x00;
+
+	aw->HT_Capabilities_Tag_Number = 0x2d;
+	aw->HT_Capabilities_Tag_length = 0x1a;
+	aw->HT_Capabilities_Info[0] = 0xad; // Exchange Value
+	aw->HT_Capabilities_Info[1] = 0x01;
+	aw->A_MPDU_Parameters = 3;
+
+	for(int i=0;i<2;i++)
+		aw->Rx_Supported_Mod[i] = 0xff;
+
+	for(int i=2;i<16;i++)
+		aw->Rx_Supported_Mod[i] = 0;
+
+	aw->HT_Extended_Capabilities = 0x0400;
+	aw->Transmit_Beam_Forming[0] = 0x06;
+	aw->Transmit_Beam_Forming[1] = 0x46;
+	aw->Transmit_Beam_Forming[2] = 0xe7;
+	aw->Transmit_Beam_Forming[3] = 0x0d;
+	aw->Antenna_Selection = 0;
+
+	aw->HT_INFO_Tag_Number = 0x3d;
+	aw->HT_INFO_Tag_length = 22;
+	aw->Primary_Channel = 1;
+	aw->HT_INFO_Subset[0] = 0;
+	aw->HT_INFO_Subset[1] = 0x11;
+	aw->HT_INFO_Subset[2] = 0;
+	aw->HT_INFO_Subset[3] = 0;
+	aw->HT_INFO_Subset[4] = 0;
+
+	for(int i=0;i<16;i++)
+		aw->INFO_Supported_Modset[i] = 0;
+
+	aw->V_Tag_Number = 0xdd;
+	aw->V_Tag_length = 8;
+	aw->V_OUI[0] = 0x00;
+	aw->V_OUI[1] = 0x13;
+	aw->V_OUI[2] = 0x92;
+	aw->V_Specific_Data[0] = 0x01;
+	aw->V_Specific_Data[1] = 0x00;
+	aw->V_Specific_Data[2] = 0x01;
+	aw->V_Specific_Data[3] = 0x05;
+	aw->V_Specific_Data[4] = 0x00;
+
+	aw->EC_Tag_Number = 0x7f;
+	aw->EC_Tag_length = 8;
+	aw->EC[0] = 0x00;
+	aw->EC[1] = 0x00;
+	aw->EC[2] = 0x08;
+	aw->EC[3] = 0x00;
+	aw->EC[4] = 0x00;
+	aw->EC[5] = 0x00;
+	aw->EC[6] = 0x00;
+	aw->EC[7] = 0x00;
+}
+
 int main(void){
 	struct ifreq if_idx;
 	struct sockaddr_ll socket_addr;
@@ -344,26 +532,12 @@ int main(void){
 	int socket1;
 
 	int SSID_len = 5;
-	unsigned char Src_SSID[] = {'Y','A','-','A','P'};
+	unsigned char Src_SSID[] = {'G','O','D','J','Y'};
+	unsigned char recv_buffer[1024];
+	memset(recv_buffer, 0xff, sizeof(recv_buffer));
 	
 	unsigned char buff[1024];
-	memset(buff, 'a', sizeof(buff));
-
-	Radiotap_Header * rthdr = NULL;
-	rthdr = (Radiotap_Header *)buff;
-	Set_Radiotap(rthdr);
-
-	Beacon_Frame * bfhdr = NULL;
-	bfhdr = (Beacon_Frame *)&buff[sizeof(Radiotap_Header)-2];
-	Set_Beacon(bfhdr);
-
-	
-
-	wireless_Header * wlhdr = NULL;
-	wlhdr = (wireless_Header *)&buff[sizeof(Radiotap_Header)+sizeof(Beacon_Frame)-2];
-	Set_wireless_LAN(wlhdr, SSID_len, Src_SSID);
-
-	printf("%d\n",sizeof(struct Radiotap)+sizeof(struct Beacon)+sizeof(struct wireless_LAN));
+	memset(buff, 0x00, sizeof(buff));
 
 	socket1 = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 
@@ -371,11 +545,43 @@ int main(void){
 	ioctl(socket1, SIOCGIFINDEX, &if_idx);
 
 	socket_addr.sll_family = PF_PACKET;
-	socket_addr.sll_ifindex = if_idx.ifr_ifru.ifru_ivalue;
-
+	socket_addr.sll_ifindex = if_idx.ifr_ifru.ifru_ivalue;		
 
 	while(1){
-		sendto(socket1, buff, sizeof(struct Radiotap)+sizeof(struct Beacon)+sizeof(struct wireless_LAN)+2, 0, (struct sockaddr *)&socket_addr, sizeof(socket_addr));
+		Radiotap_Header * rthdr = NULL;
+		rthdr = (Radiotap_Header *)buff;
+		Set_Radiotap(rthdr);
+	
+		Beacon_Frame * bfhdr = NULL;
+		bfhdr = (Beacon_Frame *)&buff[sizeof(Radiotap_Header)];
+		Set_Beacon(bfhdr);
+
+		wireless_Header * wlhdr = NULL;
+		wlhdr = (wireless_Header *)&buff[sizeof(Radiotap_Header)+sizeof(Beacon_Frame)];
+		Set_wireless_LAN(wlhdr, SSID_len, Src_SSID);
+
+		sendto(socket1, buff, sizeof(struct Radiotap)+sizeof(struct Beacon)+sizeof(struct wireless_LAN)+4, 0, (struct sockaddr *)&socket_addr, sizeof(socket_addr));
+		recvfrom(socket1, recv_buffer, sizeof(recv_buffer), 0, (struct sockaddr *)&socket_addr, sizeof(socket_addr));
+		
+		if(recv_buffer[18] == 0x00&&recv_buffer[19]==0x00){
+			
+			memset(buff,0,sizeof(buff));			
+
+			rthdr = (Radiotap_Header *)buff;
+			Set_Radiotap(rthdr);
+
+			bfhdr = (Beacon_Frame *)&buff[sizeof(Radiotap_Header)];
+			Set_Association_Response(bfhdr);
+
+			Association_Wireless * aw = NULL;
+			aw = (Association_Wireless *)&buff[sizeof(Radiotap_Header)+sizeof(Beacon_Frame) ];
+			Set_Association_wireless_LAN(aw);
+
+			sendto(socket1, buff, sizeof(struct Radiotap)+sizeof(struct Beacon)+sizeof(struct Association_wireless_LAN)+4, 0, (struct sockaddr *)&socket_addr, sizeof(socket_addr));
+		}
+
+
+		memset(recv_buffer, 0xff, sizeof(recv_buffer));
 	}
 	
 
