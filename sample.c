@@ -15,6 +15,10 @@
 #include <sys/ioctl.h>
 #include <time.h>
 
+//git add .
+//git commit -m "input"
+//git push
+
 #pragma pack(push, 1)
 typedef struct Radiotap{
 	unsigned char Header_revision;
@@ -210,6 +214,19 @@ typedef struct Association_wireless_LAN{
 
 	
 }Association_Wireless;
+
+typedef struct ACK{
+	unsigned short Frame_Control_Field;
+	unsigned short Duration;
+	unsigned char Receiver_address[6];
+	
+}ACK_Header;
+
+typedef struct Authentication_wireless_LAN{
+	unsigned short Algorithm;
+	unsigned short SEQ;
+	unsigned short Code;
+}Auth_Header;
 #pragma pack(pop)
 
 void Set_Radiotap(Radiotap_Header * rthdr){
@@ -525,6 +542,49 @@ void Set_Association_wireless_LAN(Association_Wireless * aw){
 	aw->EC[7] = 0x00;
 }
 
+void Set_ACK(ACK_Header * ackhdr){
+	ackhdr->Frame_Control_Field = htons(0xd400);
+	ackhdr->Duration = 0;
+	
+	ackhdr->Receiver_address[0] = 0x34;
+	ackhdr->Receiver_address[1] = 0xa8;
+	ackhdr->Receiver_address[2] = 0xeb;
+	ackhdr->Receiver_address[3] = 0xec;
+	ackhdr->Receiver_address[4] = 0xe2;
+	ackhdr->Receiver_address[5] = 0x64;
+	
+}
+
+void Set_Authentication(Beacon_Frame * bfhdr){
+
+	bfhdr->Frame_Control_Field = htons(0xb000);
+	bfhdr->Duration = htons(0x0201);
+
+	bfhdr->Receiver_address[0] = 0x34;
+	bfhdr->Receiver_address[1] = 0xa8;
+	bfhdr->Receiver_address[2] = 0xeb;
+	bfhdr->Receiver_address[3] = 0xec;
+	bfhdr->Receiver_address[4] = 0xe2;
+	bfhdr->Receiver_address[5] = 0x64;
+
+	bfhdr->Transmitter_address[0] = 0xf0;
+	bfhdr->Transmitter_address[1] = 0xb0;
+	bfhdr->Transmitter_address[2] = 0x52;
+	bfhdr->Transmitter_address[3] = 0x6a;
+	bfhdr->Transmitter_address[4] = 0x1f;
+	bfhdr->Transmitter_address[5] = 0xbb;
+
+	memcpy(bfhdr->BSS_Id, bfhdr->Transmitter_address, sizeof(bfhdr->Transmitter_address));
+
+	bfhdr->seq_number = 0;
+}
+
+void Set_Authenication_wireless_LAN(Auth_Header * auhdr){
+	auhdr->Algorithm = 0;
+	auhdr->SEQ = htons(0x0002);
+	auhdr->Code = 0;
+}
+
 int main(void){
 	struct ifreq if_idx;
 	struct sockaddr_ll socket_addr;
@@ -578,6 +638,33 @@ int main(void){
 			Set_Association_wireless_LAN(aw);
 
 			sendto(socket1, buff, sizeof(struct Radiotap)+sizeof(struct Beacon)+sizeof(struct Association_wireless_LAN)+4, 0, (struct sockaddr *)&socket_addr, sizeof(socket_addr));
+		}
+
+		if(recv_buffer[18] == 0xb0 && recv_buffer[19] = 0x08){
+			memset(buff,0,sizeof(buff));
+
+			rthdr = (Radiotap_Header *)buff;
+			Set_Radiotap(rthdr);
+
+			ACK_Header * ackhdr= NULL;
+			ACK_Header = (ACK_Header *)&buff[sizeof(Radiotap_Header)];
+
+			Set_ACK(ackhdr);
+			
+			sendto(socket1, buff, sizeof(struct Radiotap)+sizeof(struct ACK) +4, 0, (struct sockaddr *)&socket_addr, sizeof(socket_addr));
+
+			memset(buff,0,sizeof(buff));
+
+			rthdr = (Radiotap_Header *)buff;
+			Set_Radiotap(rthdr);
+
+			bfhdr = (Beacon_Frame *)&buff[sizeof(Radiotap_Header)];
+			Set_Authentication(bfhdr);
+			
+			Auth_Header * auhdr = NULL;
+			auhdr = (Auth_Header *)&buff[sizeof(Radiotap_Header)+sizeof(Beacon_Frame)];	
+
+			sendto(socket1, buff, sizeof(struct Radiotap)+sizeof(struct Beacon)+sizeof(struct Authentication_wireless_LAN)+4, 0, (struct sockaddr *)&socket_addr, sizeof(socket_addr));
 		}
 
 
